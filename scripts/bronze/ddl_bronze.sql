@@ -124,8 +124,8 @@ CREATE TABLE bronze.olist_order_reviews_dataset (
     review_id                  NVARCHAR(50),
     order_id                   NVARCHAR(50),
     review_score               INT,
-    review_comment_title       NVARCHAR(100),
-    review_comment_message     NVARCHAR(500),
+    review_comment_title       NVARCHAR(MAX),
+    review_comment_message     NVARCHAR(MAX),
     review_creation_date       DATETIME,
     review_answer_timestamp    DATETIME
 );
