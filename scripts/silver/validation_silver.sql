@@ -1,28 +1,41 @@
 /*====================================================================================================================
     DATA QUALITY CHECKS
-    TABLE : silver.olist_customers_dataset
     LAYER : Silver Layer
+    AUTHOR: Tharuka Harshajith - Data Engineer
 
     DESCRIPTION :
-        This script performs data quality validation checks on the
-        silver.olist_customers_dataset table.
+        This script performs data quality validation checks on Silver layer tables
+        within the Olist Data Warehouse.
 
         Validation Categories:
         -----------------------------------------------------------------------------------------
-        1. Primary key validation
-        2. Duplicate detection
-        3. NULL value checks
-        4. Whitespace validation
-        5. Low cardinality analysis
-        6. Data profiling
+        1. Data preview
+        2. Primary key validation
+        3. Duplicate detection
+        4. NULL value validation
+        5. Whitespace validation
+        6. Low cardinality analysis
+        7. Data profiling
+        8. Business rule validation
 
+====================================================================================================================*/
+
+
+
+/*####################################################################################################################
+                                            CUSTOMER DATASET VALIDATION
+####################################################################################################################*/
+
+
+/*====================================================================================================================
+    TABLE : silver.olist_customers_dataset
+    DESCRIPTION:
+        Validate customer master dataset quality.
 ====================================================================================================================*/
 
 
 /*====================================================================================================================
     1. DATA PREVIEW
-    DESCRIPTION:
-        Preview sample records from the Silver customer dataset.
 ====================================================================================================================*/
 
 SELECT TOP 100
@@ -55,7 +68,7 @@ GO
 /*====================================================================================================================
     3. WHITESPACE VALIDATION
     DESCRIPTION:
-        Checks for leading or trailing spaces in text-based columns.
+        Detects leading/trailing spaces in text columns.
 
         EXPECTED RESULT:
             No rows returned
@@ -180,4 +193,140 @@ SELECT DISTINCT
     customer_state
 FROM silver.olist_customers_dataset
 ORDER BY customer_state;
+GO
+
+
+
+
+
+/*####################################################################################################################
+                                          GEOLOCATION DATASET VALIDATION
+####################################################################################################################*/
+
+
+/*====================================================================================================================
+    TABLE : silver.olist_geolocation_dataset
+    DESCRIPTION:
+        Validate geolocation dataset quality and standardization.
+====================================================================================================================*/
+
+
+/*====================================================================================================================
+    1. DATA PREVIEW
+====================================================================================================================*/
+
+SELECT TOP 100
+    *
+FROM silver.olist_geolocation_dataset;
+GO
+
+
+/*====================================================================================================================
+    2. DUPLICATE VALIDATION
+    DESCRIPTION:
+        Checks for duplicate ZIP code prefixes.
+
+        EXPECTED RESULT:
+            No rows returned
+====================================================================================================================*/
+
+SELECT
+    geolocation_zip_code_prefix,
+    COUNT(*) AS record_count
+FROM silver.olist_geolocation_dataset
+GROUP BY geolocation_zip_code_prefix
+HAVING COUNT(*) > 1;
+GO
+
+
+/*====================================================================================================================
+    3. NULL VALUE VALIDATION
+    DESCRIPTION:
+        Checks for NULL geographic coordinates.
+
+        EXPECTED RESULT:
+            No rows returned
+====================================================================================================================*/
+
+
+-- NULL latitude values
+
+SELECT
+    *
+FROM silver.olist_geolocation_dataset
+WHERE geolocation_lat IS NULL;
+GO
+
+
+-- NULL longitude values
+
+SELECT
+    *
+FROM silver.olist_geolocation_dataset
+WHERE geolocation_lng IS NULL;
+GO
+
+
+/*====================================================================================================================
+    4. WHITESPACE VALIDATION
+    DESCRIPTION:
+        Detects leading/trailing spaces in city names.
+
+        EXPECTED RESULT:
+            No rows returned
+====================================================================================================================*/
+
+SELECT
+    *
+FROM silver.olist_geolocation_dataset
+WHERE geolocation_city <> TRIM(geolocation_city);
+GO
+
+
+/*====================================================================================================================
+    5. LOW CARDINALITY ANALYSIS
+    DESCRIPTION:
+        Reviews distinct categorical values.
+
+        PURPOSE:
+            - Detect spelling inconsistencies
+            - Detect formatting issues
+            - Detect unexpected values
+====================================================================================================================*/
+
+
+-- Distinct Cities
+
+SELECT DISTINCT
+    geolocation_city
+FROM silver.olist_geolocation_dataset
+ORDER BY geolocation_city;
+GO
+
+
+-- Distinct States
+
+SELECT DISTINCT
+    geolocation_state
+FROM silver.olist_geolocation_dataset
+ORDER BY geolocation_state;
+GO
+
+
+/*====================================================================================================================
+    6. BUSINESS RULE VALIDATION
+    DESCRIPTION:
+        Validates state code length.
+
+        BUSINESS RULE:
+            Brazilian state abbreviations must contain exactly 2 characters.
+
+        EXPECTED RESULT:
+            No rows returned
+====================================================================================================================*/
+
+SELECT
+    *
+FROM silver.olist_geolocation_dataset
+WHERE LEN(geolocation_state) <> 2;
 GO
