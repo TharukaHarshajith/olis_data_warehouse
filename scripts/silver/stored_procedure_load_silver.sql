@@ -8,24 +8,76 @@
 
         Current Transformation Scope:
         -----------------------------------------------------------------------------------------
-        1. Cleans customer dataset fields
-        2. Removes unwanted double quotes from raw string columns
-        3. Standardizes customer-related data before analytical processing
+        1. Customer dataset cleansing
+        2. Geolocation dataset standardization
+        3. Text normalization using reusable SQL function
+        4. Deduplication using ROW_NUMBER()
+        5. Coordinate aggregation using window functions
 
-        Future Enhancements:
+        TRANSFORMATION FEATURES:
         -----------------------------------------------------------------------------------------
-        - Add transformations for remaining Silver tables
-        - Implement deduplication logic
-        - Add data quality validations
-        - Add NULL handling rules
-        - Add logging and execution tracking
+        - Removes unwanted special characters
+        - Removes accented characters
+        - Standardizes casing and spacing
+        - Deduplicates geolocation records
+        - Calculates average latitude and longitude values
+        - Applies full-load ETL strategy
 
-    LOAD STRATEGY :
+====================================================================================================================*/
+
+
+/*====================================================================================================================
+    FUNCTION : silver.normalize_text
+    DESCRIPTION:
+        Reusable utility function used to standardize text fields.
+
+        Transformations Applied:
         -----------------------------------------------------------------------------------------
-        Source Layer      : Bronze
-        Target Layer      : Silver
-        Load Type         : Full Load (Truncate & Insert)
+        - Convert to lowercase
+        - Remove leading/trailing spaces
+        - Remove accented characters
+        - Remove unwanted symbols
 
+====================================================================================================================*/
+
+CREATE OR ALTER FUNCTION silver.normalize_text (
+    @text NVARCHAR(255)
+)
+RETURNS NVARCHAR(255)
+AS
+BEGIN
+
+    ------------------------------------------------------
+    -- Convert to lowercase and remove extra spaces
+    ------------------------------------------------------
+    SET @text = LOWER(TRIM(@text));
+
+    ------------------------------------------------------
+    -- Remove accented characters
+    ------------------------------------------------------
+    SET @text = TRANSLATE(
+        @text,
+        'áàãâéêíóôõúç',
+        'aaaaeeiooouc'
+    );
+
+    ------------------------------------------------------
+    -- Remove unwanted special characters
+    ------------------------------------------------------
+    SET @text = REPLACE(@text, '''', '');
+    SET @text = REPLACE(@text, '"', '');
+    SET @text = REPLACE(@text, '*', '');
+    SET @text = REPLACE(@text, '..', '');
+
+    RETURN @text;
+
+END;
+GO
+
+
+
+/*====================================================================================================================
+    STORED PROCEDURE : silver.load_silver_layer
 ====================================================================================================================*/
 
 CREATE OR ALTER PROCEDURE silver.load_silver_layer
@@ -35,20 +87,23 @@ BEGIN
     SET NOCOUNT ON;
 
     ------------------------------------------------------
-    -- Start Process Logging
+    -- Start Layer Timer
     ------------------------------------------------------
+    DECLARE @layer_start_time DATETIME = GETDATE();
+
     PRINT '======================================================';
     PRINT '===== SILVER LAYER LOAD STARTED =====';
     PRINT '======================================================';
 
 
+
     /*====================================================================
-        TABLE: silver.olist_customers_dataset
-        DESCRIPTION:
-            Cleans and standardizes customer master data.
+        1. LOAD CUSTOMER DATASET
     ====================================================================*/
 
     BEGIN TRY
+
+        DECLARE @customer_start_time DATETIME = GETDATE();
 
         PRINT 'Loading: silver.olist_customers_dataset';
 
@@ -76,35 +131,138 @@ BEGIN
             REPLACE(customer_unique_id, '"', '')        AS customer_unique_id,
             REPLACE(customer_zip_code_prefix, '"', '')  AS customer_zip_code_prefix,
 
-            TRIM(customer_city)                         AS customer_city,
+            silver.normalize_text(customer_city)        AS customer_city,
             TRIM(customer_state)                        AS customer_state
 
         FROM bronze.olist_customers_dataset;
 
         ------------------------------------------------------
-        -- Success Message
+        -- Success Logging
         ------------------------------------------------------
-        PRINT 'SUCCESS: silver.olist_customers_dataset loaded successfully';
+        PRINT 'SUCCESS: silver.olist_customers_dataset loaded';
+
+        PRINT CONCAT(
+            'Time Taken (seconds): ',
+            DATEDIFF(SECOND, @customer_start_time, GETDATE())
+        );
 
     END TRY
 
     BEGIN CATCH
 
-        ------------------------------------------------------
-        -- Error Handling
-        ------------------------------------------------------
         PRINT 'ERROR: Failed to load silver.olist_customers_dataset';
         PRINT ERROR_MESSAGE();
 
     END CATCH;
 
 
+
+    /*====================================================================
+        2. LOAD GEOLOCATION DATASET
+    ====================================================================*/
+
+    BEGIN TRY
+
+        DECLARE @geo_start_time DATETIME = GETDATE();
+
+        PRINT 'Loading: silver.olist_geolocation_dataset';
+
+        ------------------------------------------------------
+        -- Full Load Strategy
+        ------------------------------------------------------
+        TRUNCATE TABLE silver.olist_geolocation_dataset;
+
+        ------------------------------------------------------
+        -- Insert Cleansed & Deduplicated Data
+        ------------------------------------------------------
+        INSERT INTO silver.olist_geolocation_dataset (
+
+            geolocation_zip_code_prefix,
+            geolocation_lat,
+            geolocation_lng,
+            geolocation_city,
+            geolocation_state
+
+        )
+
+        SELECT
+
+            silver.normalize_text(geolocation_zip_code_prefix)
+                AS geolocation_zip_code_prefix,
+
+            geolocation_lat,
+            geolocation_lng,
+
+            silver.normalize_text(geolocation_city)
+                AS geolocation_city,
+
+            geolocation_state
+
+        FROM (
+
+            SELECT
+
+                geolocation_zip_code_prefix,
+
+                AVG(geolocation_lat)
+                    OVER(PARTITION BY geolocation_zip_code_prefix)
+                    AS geolocation_lat,
+
+                AVG(geolocation_lng)
+                    OVER(PARTITION BY geolocation_zip_code_prefix)
+                    AS geolocation_lng,
+
+                geolocation_city,
+                geolocation_state,
+
+                ROW_NUMBER()
+                    OVER(
+                        PARTITION BY geolocation_zip_code_prefix
+                        ORDER BY geolocation_zip_code_prefix
+                    ) AS flag
+
+            FROM bronze.olist_geolocation_dataset
+
+        ) t
+
+        WHERE flag = 1;
+
+        ------------------------------------------------------
+        -- Success Logging
+        ------------------------------------------------------
+        PRINT 'SUCCESS: silver.olist_geolocation_dataset loaded';
+
+        PRINT CONCAT(
+            'Time Taken (seconds): ',
+            DATEDIFF(SECOND, @geo_start_time, GETDATE())
+        );
+
+    END TRY
+
+    BEGIN CATCH
+
+        PRINT 'ERROR: Failed to load silver.olist_geolocation_dataset';
+        PRINT ERROR_MESSAGE();
+
+    END CATCH;
+
+
+
     ------------------------------------------------------
-    -- End Process Logging
+    -- Total Layer Execution Time
     ------------------------------------------------------
     PRINT '======================================================';
     PRINT '===== SILVER LAYER LOAD COMPLETED =====';
+
+    PRINT CONCAT(
+        'TOTAL TIME (seconds): ',
+        DATEDIFF(SECOND, @layer_start_time, GETDATE())
+    );
+
     PRINT '======================================================';
 
 END;
 GO
+
+
+
