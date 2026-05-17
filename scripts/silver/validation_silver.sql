@@ -903,3 +903,137 @@ GO
 SELECT *
 FROM silver.olist_orders_dataset;
 GO
+
+/*####################################################################################################################
+                                           PRODUCTS DATASET VALIDATION
+####################################################################################################################*/
+
+
+/*====================================================================
+    1. DATA PREVIEW
+====================================================================*/
+
+SELECT TOP 100
+    *
+FROM silver.olist_products_dataset;
+GO
+
+
+/*====================================================================
+    2. DUPLICATE CHECK
+====================================================================*/
+
+SELECT
+    product_id,
+    COUNT(*) AS record_count
+FROM silver.olist_products_dataset
+GROUP BY product_id
+HAVING COUNT(*) > 1;
+GO
+
+
+/*====================================================================
+    3. NULL CHECKS
+====================================================================*/
+
+SELECT *
+FROM silver.olist_products_dataset
+WHERE product_id IS NULL;
+GO
+
+SELECT *
+FROM silver.olist_products_dataset
+WHERE product_category_name IS NULL;
+GO
+
+
+/*====================================================================
+    4. WHITESPACE CHECKS
+====================================================================*/
+
+SELECT *
+FROM silver.olist_products_dataset
+WHERE product_id <> TRIM(product_id);
+GO
+
+SELECT *
+FROM silver.olist_products_dataset
+WHERE product_category_name <> TRIM(product_category_name);
+GO
+
+
+/*====================================================================
+    5. NEGATIVE VALUE CHECKS
+====================================================================*/
+
+SELECT *
+FROM silver.olist_products_dataset
+WHERE product_name_lenght < 0;
+GO
+
+SELECT *
+FROM silver.olist_products_dataset
+WHERE product_description_lenght < 0;
+GO
+
+SELECT *
+FROM silver.olist_products_dataset
+WHERE product_photos_qty < 0;
+GO
+
+SELECT *
+FROM silver.olist_products_dataset
+WHERE product_weight_g < 0;
+GO
+
+SELECT *
+FROM silver.olist_products_dataset
+WHERE product_length_cm < 0;
+GO
+
+SELECT *
+FROM silver.olist_products_dataset
+WHERE product_height_cm < 0;
+GO
+
+SELECT *
+FROM silver.olist_products_dataset
+WHERE product_width_cm < 0;
+GO
+
+
+/*====================================================================
+    6. LOW CARDINALITY CHECK
+====================================================================*/
+
+SELECT DISTINCT
+    product_category_name
+FROM silver.olist_products_dataset
+ORDER BY product_category_name;
+GO
+
+
+/*====================================================================
+    7. ZERO VALUE ANALYSIS
+====================================================================*/
+
+SELECT *
+FROM silver.olist_products_dataset
+WHERE product_weight_g = 0;
+GO
+
+SELECT *
+FROM silver.olist_products_dataset
+WHERE product_length_cm = 0
+   OR product_height_cm = 0
+   OR product_width_cm = 0;
+GO
+
+
+/*====================================================================
+    8. FINAL DATA CHECK
+====================================================================*/
+
+SELECT *
+FROM silver.olist_products_dataset;
+GO
