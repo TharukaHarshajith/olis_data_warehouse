@@ -1037,3 +1037,116 @@ GO
 SELECT *
 FROM silver.olist_products_dataset;
 GO
+
+/*####################################################################################################################
+                                            SELLERS DATASET VALIDATION
+####################################################################################################################*/
+
+
+/*====================================================================
+    1. DATA PREVIEW
+====================================================================*/
+
+SELECT TOP 100
+    *
+FROM silver.olist_sellers_dataset;
+GO
+
+
+/*====================================================================
+    2. DUPLICATE CHECK
+====================================================================*/
+
+SELECT
+    seller_id,
+    COUNT(*) AS record_count
+FROM silver.olist_sellers_dataset
+GROUP BY seller_id
+HAVING COUNT(*) > 1;
+GO
+
+
+/*====================================================================
+    3. NULL CHECKS
+====================================================================*/
+
+SELECT *
+FROM silver.olist_sellers_dataset
+WHERE seller_id IS NULL;
+GO
+
+SELECT *
+FROM silver.olist_sellers_dataset
+WHERE seller_zip_code_prefix IS NULL;
+GO
+
+SELECT *
+FROM silver.olist_sellers_dataset
+WHERE seller_city IS NULL;
+GO
+
+SELECT *
+FROM silver.olist_sellers_dataset
+WHERE seller_state IS NULL;
+GO
+
+
+/*====================================================================
+    4. WHITESPACE CHECKS
+====================================================================*/
+
+SELECT *
+FROM silver.olist_sellers_dataset
+WHERE seller_id <> TRIM(seller_id);
+GO
+
+SELECT *
+FROM silver.olist_sellers_dataset
+WHERE seller_zip_code_prefix <> TRIM(seller_zip_code_prefix);
+GO
+
+SELECT *
+FROM silver.olist_sellers_dataset
+WHERE seller_city <> TRIM(seller_city);
+GO
+
+SELECT *
+FROM silver.olist_sellers_dataset
+WHERE seller_state <> TRIM(seller_state);
+GO
+
+
+/*====================================================================
+    5. STATE CODE VALIDATION
+====================================================================*/
+
+SELECT *
+FROM silver.olist_sellers_dataset
+WHERE LEN(seller_state) <> 2;
+GO
+
+
+/*====================================================================
+    6. LOW CARDINALITY CHECKS
+====================================================================*/
+
+SELECT DISTINCT
+    seller_city
+FROM silver.olist_sellers_dataset
+ORDER BY seller_city;
+GO
+
+SELECT DISTINCT
+    seller_state
+FROM silver.olist_sellers_dataset
+ORDER BY seller_state;
+GO
+
+
+/*====================================================================
+    7. FINAL DATA CHECK
+====================================================================*/
+
+SELECT *
+FROM silver.olist_sellers_dataset;
+GO
