@@ -819,6 +819,108 @@ BEGIN
 
         END CATCH;
 
+        /*====================================================================
+    7. LOAD PRODUCTS DATASET
+====================================================================*/
+
+BEGIN TRY
+
+    DECLARE @products_start_time DATETIME = GETDATE();
+    
+
+    PRINT 'Loading: silver.olist_products_dataset';
+
+    TRUNCATE TABLE silver.olist_products_dataset;
+
+    INSERT INTO silver.olist_products_dataset (
+
+        product_id,
+        product_category_name,
+        product_name_lenght,
+        product_description_lenght,
+        product_photos_qty,
+        product_weight_g,
+        product_length_cm,
+        product_height_cm,
+        product_width_cm
+
+    )
+
+    SELECT 
+
+        REPLACE(TRIM(product_id), '"', '')
+            AS product_id,
+
+        CASE
+            WHEN product_category_name IS NULL
+            THEN 'n/a'
+            ELSE TRIM(product_category_name)
+        END AS product_category_name,
+
+        CASE
+            WHEN product_name_lenght IS NULL
+            THEN 0
+            ELSE product_name_lenght
+        END AS product_name_lenght,
+
+        CASE
+            WHEN product_description_lenght IS NULL
+            THEN 0
+            ELSE product_description_lenght
+        END AS product_description_lenght,
+
+        CASE
+            WHEN product_photos_qty IS NULL
+            THEN 0
+            ELSE product_photos_qty
+        END AS product_photos_qty,
+
+        CASE
+            WHEN product_weight_g IS NULL
+            THEN 0
+            ELSE product_weight_g
+        END AS product_weight_g,
+
+        CASE
+            WHEN product_length_cm IS NULL
+            THEN 0
+            ELSE product_length_cm
+        END AS product_length_cm,
+
+        CASE
+            WHEN product_height_cm IS NULL
+            THEN 0
+            ELSE product_height_cm
+        END AS product_height_cm,
+
+        CASE
+            WHEN product_width_cm IS NULL
+            THEN 0
+            ELSE product_width_cm
+        END AS product_width_cm
+
+    FROM bronze.olist_products_dataset;
+
+    SET @rows_inserted = @@ROWCOUNT;
+
+    PRINT 'SUCCESS: silver.olist_products_dataset loaded';
+
+    PRINT CONCAT('Rows Inserted: ', @rows_inserted);
+
+    PRINT CONCAT(
+        'Time Taken (seconds): ',
+        DATEDIFF(SECOND, @products_start_time, GETDATE())
+    );
+
+END TRY
+
+BEGIN CATCH
+
+    PRINT 'ERROR: Failed to load silver.olist_products_dataset';
+    PRINT ERROR_MESSAGE();
+
+END CATCH;
+
     ------------------------------------------------------
     -- Total Layer Execution Time
     ------------------------------------------------------
