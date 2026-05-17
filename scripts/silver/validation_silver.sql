@@ -667,3 +667,86 @@ SELECT
     *
 FROM silver.olist_order_payments_dataset;
 GO
+
+/*####################################################################################################################
+                                         ORDER REVIEWS DATASET VALIDATION
+####################################################################################################################*/
+
+
+/*====================================================================================================================
+    TABLE : silver.olist_order_reviews_dataset
+    DESCRIPTION:
+        Validate customer review dataset quality and review-related business rules.
+
+    VALIDATION SCOPE:
+        -----------------------------------------------------------------------------------------
+        1. Data preview
+        2. Duplicate key validation
+        3. Low cardinality analysis
+        4. Final review data inspection
+
+====================================================================================================================*/
+
+
+/*====================================================================================================================
+    1. DATA PREVIEW
+    DESCRIPTION:
+        Preview a specific review record for manual validation.
+====================================================================================================================*/
+
+SELECT
+    *
+FROM silver.olist_order_reviews_dataset
+WHERE review_id = '466783cc2c97a17f9753dca6a1d24b4a';
+GO
+
+
+/*====================================================================================================================
+    2. DUPLICATE KEY VALIDATION
+    DESCRIPTION:
+        Checks for duplicate review identifiers.
+
+        BUSINESS KEY:
+            review_id
+
+        EXPECTED RESULT:
+            No rows returned
+====================================================================================================================*/
+
+SELECT
+    review_id,
+    COUNT(*) AS record_count
+FROM silver.olist_order_reviews_dataset
+GROUP BY review_id
+HAVING COUNT(*) > 1;
+GO
+
+
+/*====================================================================================================================
+    3. LOW CARDINALITY ANALYSIS
+    DESCRIPTION:
+        Reviews distinct review titles.
+
+        PURPOSE:
+            - Detect unexpected values
+            - Detect formatting inconsistencies
+            - Analyze review title distribution
+====================================================================================================================*/
+
+SELECT DISTINCT
+    review_comment_title
+FROM silver.olist_order_reviews_dataset
+ORDER BY review_comment_title;
+GO
+
+
+/*====================================================================================================================
+    4. FINAL DATA INSPECTION
+    DESCRIPTION:
+        Final verification of transformed review dataset.
+====================================================================================================================*/
+
+SELECT
+    *
+FROM silver.olist_order_reviews_dataset;
+GO
