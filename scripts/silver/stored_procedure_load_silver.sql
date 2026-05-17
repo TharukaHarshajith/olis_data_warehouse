@@ -978,6 +978,55 @@ BEGIN CATCH
 
 END CATCH;
 
+/*====================================================================
+    9. LOAD PRODUCT CATEGORY TRANSLATION DATASET
+====================================================================*/
+
+BEGIN TRY
+
+    DECLARE @translation_start_time DATETIME = GETDATE();
+
+    PRINT 'Loading: silver.product_category_name_translation';
+
+    TRUNCATE TABLE silver.product_category_name_translation;
+
+    INSERT INTO silver.product_category_name_translation (
+
+        product_category_name,
+        product_category_name_english
+
+    )
+
+    SELECT
+
+        TRIM(product_category_name)
+            AS product_category_name,
+
+        TRIM(product_category_name_english)
+            AS product_category_name_english
+
+    FROM bronze.product_category_name_translation;
+
+    SET @rows_inserted = @@ROWCOUNT;
+
+    PRINT 'SUCCESS: silver.product_category_name_translation loaded';
+
+    PRINT CONCAT('Rows Inserted: ', @rows_inserted);
+
+    PRINT CONCAT(
+        'Time Taken (seconds): ',
+        DATEDIFF(SECOND, @translation_start_time, GETDATE())
+    );
+
+END TRY
+
+BEGIN CATCH
+
+    PRINT 'ERROR: Failed to load silver.product_category_name_translation';
+    PRINT ERROR_MESSAGE();
+
+END CATCH;
+
     ------------------------------------------------------
     -- Total Layer Execution Time
     ------------------------------------------------------
