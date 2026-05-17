@@ -537,3 +537,133 @@ SELECT
     *
 FROM silver.olist_order_items_dataset;
 GO
+
+/*####################################################################################################################
+                                        ORDER PAYMENTS DATASET VALIDATION
+####################################################################################################################*/
+
+
+/*====================================================================================================================
+    TABLE : silver.olist_order_payments_dataset
+    DESCRIPTION:
+        Validate payment transaction data quality and business consistency.
+
+    VALIDATION SCOPE:
+        -----------------------------------------------------------------------------------------
+        1. Data preview
+        2. Composite key duplicate validation
+        3. Order-level payment analysis
+        4. Low cardinality analysis
+        5. Numeric validation
+        6. Final data inspection
+
+====================================================================================================================*/
+
+
+/*====================================================================================================================
+    1. DATA PREVIEW
+    DESCRIPTION:
+        Preview payment records for a specific order.
+
+====================================================================================================================*/
+
+SELECT
+    *
+FROM silver.olist_order_payments_dataset
+WHERE order_id = 'f1cefe8e64d1771be13b8fd8360385e3';
+GO
+
+
+/*====================================================================================================================
+    2. DUPLICATE COMPOSITE KEY VALIDATION
+    DESCRIPTION:
+        Checks for duplicate payment sequence records.
+
+        BUSINESS KEY:
+            (order_id, payment_sequential)
+
+        EXPECTED RESULT:
+            No rows returned
+====================================================================================================================*/
+
+SELECT
+    order_id,
+    payment_sequential,
+    COUNT(*) AS record_count
+FROM silver.olist_order_payments_dataset
+GROUP BY
+    order_id,
+    payment_sequential
+HAVING COUNT(*) > 1;
+GO
+
+
+/*====================================================================================================================
+    3. ORDER-LEVEL PAYMENT ANALYSIS
+    DESCRIPTION:
+        Identifies orders with multiple payment records.
+
+        NOTE:
+            Multiple rows may exist for installment or split payments.
+
+====================================================================================================================*/
+
+SELECT
+    order_id,
+    COUNT(*) AS payment_record_count
+FROM silver.olist_order_payments_dataset
+GROUP BY order_id
+HAVING COUNT(*) > 1
+ORDER BY payment_record_count DESC;
+GO
+
+
+/*====================================================================================================================
+    4. LOW CARDINALITY ANALYSIS
+    DESCRIPTION:
+        Reviews distinct payment types.
+
+        PURPOSE:
+            - Detect unexpected categories
+            - Detect spelling inconsistencies
+            - Validate payment method domain
+====================================================================================================================*/
+
+SELECT DISTINCT
+    payment_type
+FROM silver.olist_order_payments_dataset
+ORDER BY payment_type;
+GO
+
+
+/*====================================================================================================================
+    5. NUMERIC VALIDATION
+    DESCRIPTION:
+        Checks for invalid negative payment values.
+
+        BUSINESS RULES:
+            - payment_installments >= 0
+            - payment_value >= 0
+
+        EXPECTED RESULT:
+            No rows returned
+====================================================================================================================*/
+
+SELECT
+    *
+FROM silver.olist_order_payments_dataset
+WHERE payment_installments < 0
+    OR payment_value < 0;
+GO
+
+
+/*====================================================================================================================
+    6. FINAL DATA INSPECTION
+    DESCRIPTION:
+        Final verification of transformed payment dataset.
+====================================================================================================================*/
+
+SELECT
+    *
+FROM silver.olist_order_payments_dataset;
+GO
