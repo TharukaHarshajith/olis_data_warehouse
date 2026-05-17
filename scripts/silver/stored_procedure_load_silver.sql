@@ -132,9 +132,9 @@ BEGIN
 
         SELECT
 
-            REPLACE(customer_id, '"', '')               AS customer_id,
-            REPLACE(customer_unique_id, '"', '')        AS customer_unique_id,
-            REPLACE(customer_zip_code_prefix, '"', '')  AS customer_zip_code_prefix,
+            REPLACE(TRIM(customer_id), '"', '')               AS customer_id,
+            REPLACE(TRIM(customer_unique_id), '"', '')        AS customer_unique_id,
+            REPLACE(TRIM(customer_zip_code_prefix), '"', '')  AS customer_zip_code_prefix,
 
             silver.normalize_text(customer_city)        AS customer_city,
             TRIM(customer_state)                        AS customer_state
@@ -362,7 +362,98 @@ BEGIN
 
         END CATCH;
 
+        /*====================================================================================================================
+        4. LOAD ORDER PAYMENTS DATASET
+        DESCRIPTION:
+            Loads and transforms payment transaction data from the Bronze layer
+            into the Silver layer.
 
+            TRANSFORMATIONS APPLIED:
+            -----------------------------------------------------------------------------------------
+            - Removes unwanted quotation marks
+            - Removes leading/trailing spaces
+            - Converts payment_sequential to INT
+            - Preserves payment-related transactional values
+            - Standardizes key columns
+
+        ====================================================================================================================*/
+
+    BEGIN TRY
+
+        ------------------------------------------------------
+        -- Start Execution Timer
+        ------------------------------------------------------
+        DECLARE @payment_start_time DATETIME = GETDATE();
+
+        
+
+        PRINT 'Loading: silver.olist_order_payments_dataset';
+
+        ------------------------------------------------------
+        -- Full Load Strategy
+        ------------------------------------------------------
+        TRUNCATE TABLE silver.olist_order_payments_dataset;
+
+        ------------------------------------------------------
+        -- Insert Transformed Data
+        ------------------------------------------------------
+        INSERT INTO silver.olist_order_payments_dataset (
+
+            order_id,
+            payment_sequential,
+            payment_type,
+            payment_installments,
+            payment_value
+
+        )
+
+        SELECT
+
+            REPLACE(TRIM(order_id), '"', '')
+                AS order_id,
+
+            CAST(payment_sequential AS INT)
+                AS payment_sequential,
+
+            TRIM(payment_type)
+                AS payment_type,
+
+            payment_installments,
+            payment_value
+
+        FROM bronze.olist_order_payments_dataset;
+
+        ------------------------------------------------------
+        -- Capture Inserted Row Count
+        ------------------------------------------------------
+        SET @rows_inserted = @@ROWCOUNT;
+
+        ------------------------------------------------------
+        -- Success Logging
+        ------------------------------------------------------
+        PRINT 'SUCCESS: silver.olist_order_payments_dataset loaded';
+
+        PRINT CONCAT(
+            'Rows Inserted: ',
+            @rows_inserted
+        );
+
+        PRINT CONCAT(
+            'Time Taken (seconds): ',
+            DATEDIFF(SECOND, @payment_start_time, GETDATE())
+        );
+
+    END TRY
+
+    BEGIN CATCH
+
+        ------------------------------------------------------
+        -- Error Logging
+        ------------------------------------------------------
+        PRINT 'ERROR: Failed to load silver.olist_order_payments_dataset';
+        PRINT ERROR_MESSAGE();
+
+    END CATCH;
 
     ------------------------------------------------------
     -- Total Layer Execution Time
@@ -379,3 +470,4 @@ BEGIN
 
 END;
 GO
+
