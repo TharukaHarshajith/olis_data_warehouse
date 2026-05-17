@@ -555,6 +555,270 @@ BEGIN
 
         END CATCH;
 
+        /*====================================================================================================================
+            6. LOAD ORDERS DATASET
+            DESCRIPTION:
+                Loads and transforms order lifecycle data from the Bronze layer
+                into the Silver layer.
+
+                TRANSFORMATIONS APPLIED:
+                -----------------------------------------------------------------------------------------
+                - Removes unwanted quotation marks
+                - Removes leading/trailing spaces
+                - Standardizes order status values
+                - Corrects small timestamp inconsistencies
+                - Applies chronological validation logic
+                - Generates data quality anomaly flags
+
+        ====================================================================================================================*/
+
+        BEGIN TRY
+
+            ------------------------------------------------------
+            -- Start Execution Timer
+            ------------------------------------------------------
+            DECLARE @orders_start_time DATETIME = GETDATE();
+
+            PRINT 'Loading: silver.olist_orders_dataset';
+
+            ------------------------------------------------------
+            -- Full Load Strategy
+            ------------------------------------------------------
+            TRUNCATE TABLE silver.olist_orders_dataset;
+
+            ------------------------------------------------------
+            -- Insert Transformed Data
+            ------------------------------------------------------
+            INSERT INTO silver.olist_orders_dataset (
+
+                order_id,
+                customer_id,
+                order_status,
+
+                order_purchase_timestamp,
+                order_approved_at,
+                order_delivered_carrier_date,
+                order_delivered_customer_date,
+                order_estimated_delivery_date,
+
+                dq_invalid_approval_timestamp_flag,
+                dq_invalid_carrier_timestamp_flag,
+                dq_invalid_customer_delivery_timestamp_flag,
+                dq_invalid_estimated_delivery_timestamp_flag
+
+            )
+
+            SELECT
+
+                ------------------------------------------------------
+                -- Cleaned Business Keys
+                ------------------------------------------------------
+                REPLACE(TRIM(order_id), '"', '')
+                    AS order_id,
+
+                REPLACE(TRIM(customer_id), '"', '')
+                    AS customer_id,
+
+
+                ------------------------------------------------------
+                -- Order Information
+                ------------------------------------------------------
+                TRIM(order_status)
+                    AS order_status,
+
+
+                ------------------------------------------------------
+                -- Purchase Timestamp
+                ------------------------------------------------------
+                order_purchase_timestamp,
+
+
+                /*==========================================================================================================
+                    ORDER APPROVED TIMESTAMP
+                    Rule:
+                        Approval timestamp cannot occur before purchase timestamp.
+
+                    Logic:
+                        If approval timestamp is earlier within 1 hour tolerance,
+                        standardize using purchase timestamp.
+                ==========================================================================================================*/
+                CASE
+
+                    WHEN order_approved_at < order_purchase_timestamp
+                         AND ABS(
+                                DATEDIFF(
+                                    MINUTE,
+                                    order_approved_at,
+                                    order_purchase_timestamp
+                                )
+                             ) <= 60
+
+                    THEN order_purchase_timestamp
+
+                    ELSE order_approved_at
+
+                END AS order_approved_at,
+
+
+                /*==========================================================================================================
+                    CARRIER DELIVERY TIMESTAMP
+                    Rule:
+                        Carrier pickup cannot occur before approval timestamp.
+
+                    Logic:
+                        If carrier timestamp is earlier within 1 hour tolerance,
+                        standardize using approval timestamp.
+                ==========================================================================================================*/
+                CASE
+
+                    WHEN order_delivered_carrier_date < order_approved_at
+                         AND ABS(
+                                DATEDIFF(
+                                    MINUTE,
+                                    order_delivered_carrier_date,
+                                    order_approved_at
+                                )
+                             ) <= 60
+
+                    THEN order_approved_at
+
+                    ELSE order_delivered_carrier_date
+
+                END AS order_delivered_carrier_date,
+
+
+                /*==========================================================================================================
+                    CUSTOMER DELIVERY TIMESTAMP
+                    Rule:
+                        Customer delivery cannot occur before carrier pickup.
+
+                    Logic:
+                        If delivery timestamp is earlier within 1 hour tolerance,
+                        standardize using carrier timestamp.
+                ==========================================================================================================*/
+                CASE
+
+                    WHEN order_delivered_customer_date < order_delivered_carrier_date
+                         AND ABS(
+                                DATEDIFF(
+                                    MINUTE,
+                                    order_delivered_customer_date,
+                                    order_delivered_carrier_date
+                                )
+                             ) <= 60
+
+                    THEN order_delivered_carrier_date
+
+                    ELSE order_delivered_customer_date
+
+                END AS order_delivered_customer_date,
+
+
+                /*==========================================================================================================
+                    ESTIMATED DELIVERY DATE
+                    Rule:
+                        Estimated delivery date should not occur before purchase timestamp.
+                ==========================================================================================================*/
+                CASE
+
+                    WHEN order_estimated_delivery_date < order_purchase_timestamp
+
+                    THEN order_purchase_timestamp
+
+                    ELSE order_estimated_delivery_date
+
+                END AS order_estimated_delivery_date,
+
+
+                /*==========================================================================================================
+                    DATA QUALITY FLAGS
+                ==========================================================================================================*/
+
+                ------------------------------------------------------
+                -- Approval Timestamp Anomaly Flag
+                ------------------------------------------------------
+                CASE
+
+                    WHEN order_approved_at < order_purchase_timestamp
+                    THEN 1
+
+                    ELSE 0
+
+                END AS dq_invalid_approval_timestamp_flag,
+
+
+                ------------------------------------------------------
+                -- Carrier Timestamp Anomaly Flag
+                ------------------------------------------------------
+                CASE
+
+                    WHEN order_delivered_carrier_date < order_approved_at
+                    THEN 1
+
+                    ELSE 0
+
+                END AS dq_invalid_carrier_timestamp_flag,
+
+
+                ------------------------------------------------------
+                -- Customer Delivery Timestamp Anomaly Flag
+                ------------------------------------------------------
+                CASE
+
+                    WHEN order_delivered_customer_date < order_delivered_carrier_date
+                    THEN 1
+
+                    ELSE 0
+
+                END AS dq_invalid_customer_delivery_timestamp_flag,
+
+
+                ------------------------------------------------------
+                -- Estimated Delivery Timestamp Anomaly Flag
+                ------------------------------------------------------
+                CASE
+
+                    WHEN order_estimated_delivery_date < order_purchase_timestamp
+                    THEN 1
+
+                    ELSE 0
+
+                END AS dq_invalid_estimated_delivery_timestamp_flag
+
+            FROM bronze.olist_orders_dataset;
+
+            ------------------------------------------------------
+            -- Capture Inserted Row Count
+            ------------------------------------------------------
+            SET @rows_inserted = @@ROWCOUNT;
+
+            ------------------------------------------------------
+            -- Success Logging
+            ------------------------------------------------------
+            PRINT 'SUCCESS: silver.olist_orders_dataset loaded';
+
+            PRINT CONCAT(
+                'Rows Inserted: ',
+                @rows_inserted
+            );
+
+            PRINT CONCAT(
+                'Time Taken (seconds): ',
+                DATEDIFF(SECOND, @orders_start_time, GETDATE())
+            );
+
+        END TRY
+
+        BEGIN CATCH
+
+            ------------------------------------------------------
+            -- Error Logging
+            ------------------------------------------------------
+            PRINT 'ERROR: Failed to load silver.olist_orders_dataset';
+            PRINT ERROR_MESSAGE();
+
+        END CATCH;
+
     ------------------------------------------------------
     -- Total Layer Execution Time
     ------------------------------------------------------
@@ -571,4 +835,4 @@ BEGIN
 END;
 GO
 
-EXEC silver.load_silver_layer
+--EXEC silver.load_silver_layer
