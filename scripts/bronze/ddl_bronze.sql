@@ -190,7 +190,7 @@ CREATE TABLE bronze.olist_sellers_dataset (
     seller_id                  NVARCHAR(50),
     seller_zip_code_prefix     NVARCHAR(50),
     seller_city                NVARCHAR(50),
-    seller_state               NVARCHAR(50)
+    seller_state               NVARCHAR(2)
 );
 GO
 
