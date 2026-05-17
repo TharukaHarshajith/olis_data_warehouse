@@ -245,7 +245,7 @@ CREATE TABLE silver.olist_sellers_dataset (
     seller_zip_code_prefix     NVARCHAR(20),
 
     seller_city                NVARCHAR(100),
-    seller_state               NVARCHAR(10),
+    seller_state               NVARCHAR(2),
 
     dwh_create_date            DATETIME2 DEFAULT GETDATE()
 
