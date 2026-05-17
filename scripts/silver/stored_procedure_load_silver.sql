@@ -91,6 +91,11 @@ BEGIN
     ------------------------------------------------------
     DECLARE @layer_start_time DATETIME = GETDATE();
 
+    ------------------------------------------------------
+    -- Variable to Store Inserted Row Count
+    ------------------------------------------------------
+    DECLARE @rows_inserted INT;
+
     PRINT '======================================================';
     PRINT '===== SILVER LAYER LOAD STARTED =====';
     PRINT '======================================================';
@@ -137,10 +142,18 @@ BEGIN
         FROM bronze.olist_customers_dataset;
 
         ------------------------------------------------------
+        -- Capture Affected Rows
+        ------------------------------------------------------
+        SET @rows_inserted = @@ROWCOUNT;
+        ------------------------------------------------------
         -- Success Logging
         ------------------------------------------------------
         PRINT 'SUCCESS: silver.olist_customers_dataset loaded';
 
+        PRINT CONCAT(
+            'Rows Inserted: ',
+            @rows_inserted
+        );
         PRINT CONCAT(
             'Time Taken (seconds): ',
             DATEDIFF(SECOND, @customer_start_time, GETDATE())
@@ -228,10 +241,19 @@ BEGIN
         WHERE flag = 1;
 
         ------------------------------------------------------
+        -- Capture Affected Rows
+        ------------------------------------------------------
+        SET @rows_inserted = @@ROWCOUNT;
+
+        ------------------------------------------------------
         -- Success Logging
         ------------------------------------------------------
         PRINT 'SUCCESS: silver.olist_geolocation_dataset loaded';
 
+        PRINT CONCAT(
+            'Rows Inserted: ',
+            @rows_inserted
+        );
         PRINT CONCAT(
             'Time Taken (seconds): ',
             DATEDIFF(SECOND, @geo_start_time, GETDATE())
@@ -245,6 +267,100 @@ BEGIN
         PRINT ERROR_MESSAGE();
 
     END CATCH;
+
+       /*====================================================================================================================
+            3. LOAD ORDER ITEMS DATASET
+            DESCRIPTION:
+                Loads and cleanses order item-level transactional data from the Bronze layer.
+
+                TRANSFORMATIONS APPLIED:
+                -----------------------------------------------------------------------------------------
+                - Removes unwanted double quotes
+                - Removes leading/trailing spaces
+                - Standardizes key columns
+                - Preserves transactional numeric values
+
+        ====================================================================================================================*/
+
+        BEGIN TRY
+
+            ------------------------------------------------------
+            -- Start Execution Timer
+            ------------------------------------------------------
+            DECLARE @order_items_start_time DATETIME = GETDATE();
+
+            PRINT 'Loading: silver.olist_order_items_dataset';
+
+            ------------------------------------------------------
+            -- Full Load Strategy
+            ------------------------------------------------------
+            TRUNCATE TABLE silver.olist_order_items_dataset;
+
+            ------------------------------------------------------
+            -- Insert Transformed Data
+            ------------------------------------------------------
+            INSERT INTO silver.olist_order_items_dataset (
+
+                order_id,
+                order_item_id,
+                product_id,
+                seller_id,
+                shipping_limit_date,
+                price,
+                freight_value
+
+            )
+
+            SELECT
+
+                REPLACE(TRIM(order_id), '"', '')
+                    AS order_id,
+
+                order_item_id,
+
+                REPLACE(TRIM(product_id), '"', '')
+                    AS product_id,
+
+                REPLACE(TRIM(seller_id), '"', '')
+                    AS seller_id,
+
+                shipping_limit_date,
+
+                price,
+                freight_value
+
+            FROM bronze.olist_order_items_dataset;
+
+            ------------------------------------------------------
+            -- Capture Affected Rows
+            ------------------------------------------------------
+            SET @rows_inserted = @@ROWCOUNT;
+
+            ------------------------------------------------------
+            -- Success Logging
+            ------------------------------------------------------
+            PRINT 'SUCCESS: silver.olist_order_items_dataset loaded';
+
+            PRINT CONCAT(
+                'Rows Inserted: ',
+                @rows_inserted
+            );
+            PRINT CONCAT(
+                'Time Taken (seconds): ',
+                DATEDIFF(SECOND, @order_items_start_time, GETDATE())
+            );
+
+        END TRY
+
+        BEGIN CATCH
+
+            ------------------------------------------------------
+            -- Error Logging
+            ------------------------------------------------------
+            PRINT 'ERROR: Failed to load silver.olist_order_items_dataset';
+            PRINT ERROR_MESSAGE();
+
+        END CATCH;
 
 
 
@@ -263,6 +379,3 @@ BEGIN
 
 END;
 GO
-
-
-
