@@ -330,3 +330,210 @@ SELECT
 FROM silver.olist_geolocation_dataset
 WHERE LEN(geolocation_state) <> 2;
 GO
+
+/*####################################################################################################################
+                                         ORDER ITEMS DATASET VALIDATION
+####################################################################################################################*/
+
+
+/*====================================================================================================================
+    TABLE : silver.olist_order_items_dataset
+    DESCRIPTION:
+        Validate order item-level transactional data quality.
+
+    VALIDATION SCOPE:
+        -----------------------------------------------------------------------------------------
+        1. Data preview
+        2. Duplicate composite key validation
+        3. NULL value validation
+        4. Date validation
+        5. Numeric validation
+        6. Final data inspection
+
+====================================================================================================================*/
+
+
+/*====================================================================================================================
+    1. DATA PREVIEW
+    DESCRIPTION:
+        Preview sample records from the order items dataset.
+====================================================================================================================*/
+
+SELECT TOP 100
+    *
+FROM silver.olist_order_items_dataset;
+GO
+
+
+/*====================================================================================================================
+    2. RAW DATA CLEANING VALIDATION
+    DESCRIPTION:
+        Verifies unwanted quotation marks were removed during transformation.
+
+        EXPECTED RESULT:
+            No rows returned
+====================================================================================================================*/
+
+SELECT
+    *
+FROM silver.olist_order_items_dataset
+WHERE order_id = '"73a15e8fc5de8485d1f16639bc66a273"';
+GO
+
+
+/*====================================================================================================================
+    3. DUPLICATE KEY VALIDATION
+    DESCRIPTION:
+        Checks for duplicate composite keys.
+
+        BUSINESS KEY:
+            (order_id, order_item_id)
+
+        EXPECTED RESULT:
+            No rows returned
+====================================================================================================================*/
+
+SELECT
+    order_id,
+    order_item_id,
+    COUNT(*) AS record_count
+FROM silver.olist_order_items_dataset
+GROUP BY
+    order_id,
+    order_item_id
+HAVING COUNT(*) > 1;
+GO
+
+
+/*====================================================================================================================
+    4. NULL VALUE VALIDATION
+    DESCRIPTION:
+        Checks for NULL values in mandatory business columns.
+
+        EXPECTED RESULT:
+            No rows returned
+====================================================================================================================*/
+
+
+-- order_id
+
+SELECT
+    *
+FROM silver.olist_order_items_dataset
+WHERE order_id IS NULL;
+GO
+
+
+-- order_item_id
+
+SELECT
+    *
+FROM silver.olist_order_items_dataset
+WHERE order_item_id IS NULL;
+GO
+
+
+-- product_id
+
+SELECT
+    *
+FROM silver.olist_order_items_dataset
+WHERE product_id IS NULL;
+GO
+
+
+-- seller_id
+
+SELECT
+    *
+FROM silver.olist_order_items_dataset
+WHERE seller_id IS NULL;
+GO
+
+
+-- shipping_limit_date
+
+SELECT
+    *
+FROM silver.olist_order_items_dataset
+WHERE shipping_limit_date IS NULL;
+GO
+
+
+-- price
+
+SELECT
+    *
+FROM silver.olist_order_items_dataset
+WHERE price IS NULL;
+GO
+
+
+-- freight_value
+
+SELECT
+    *
+FROM silver.olist_order_items_dataset
+WHERE freight_value IS NULL;
+GO
+
+
+/*====================================================================================================================
+    5. DATE VALIDATION
+    DESCRIPTION:
+        Checks for invalid shipping dates.
+
+        BUSINESS RULES:
+            - Date should not be in the future
+            - Date should not be earlier than 2016
+
+        EXPECTED RESULT:
+            No rows returned
+====================================================================================================================*/
+
+SELECT
+    *
+FROM silver.olist_order_items_dataset
+WHERE shipping_limit_date > GETDATE()
+    OR YEAR(shipping_limit_date) < 2016;
+GO
+
+
+/*====================================================================================================================
+    6. NUMERIC VALIDATION
+    DESCRIPTION:
+        Checks for invalid negative monetary values.
+
+        EXPECTED RESULT:
+            No rows returned
+====================================================================================================================*/
+
+
+-- Negative product price
+
+SELECT
+    *
+FROM silver.olist_order_items_dataset
+WHERE price < 0;
+GO
+
+
+-- Negative freight value
+
+SELECT
+    *
+FROM silver.olist_order_items_dataset
+WHERE freight_value < 0;
+GO
+
+
+/*====================================================================================================================
+    7. FINAL DATA INSPECTION
+    DESCRIPTION:
+        Final verification of transformed dataset.
+====================================================================================================================*/
+
+SELECT
+    *
+FROM silver.olist_order_items_dataset;
+GO
