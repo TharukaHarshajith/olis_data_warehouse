@@ -921,6 +921,63 @@ BEGIN CATCH
 
 END CATCH;
 
+/*====================================================================
+    8. LOAD SELLERS DATASET
+====================================================================*/
+
+BEGIN TRY
+
+    DECLARE @sellers_start_time DATETIME = GETDATE();
+
+    PRINT 'Loading: silver.olist_sellers_dataset';
+
+    TRUNCATE TABLE silver.olist_sellers_dataset;
+
+    INSERT INTO silver.olist_sellers_dataset (
+
+        seller_id,
+        seller_zip_code_prefix,
+        seller_city,
+        seller_state
+
+    )
+
+    SELECT
+
+        REPLACE(TRIM(seller_id), '"', '')
+            AS seller_id,
+
+        REPLACE(TRIM(seller_zip_code_prefix), '"', '')
+            AS seller_zip_code_prefix,
+
+        silver.normalize_text(seller_city)
+            AS seller_city,
+
+        TRIM(seller_state)
+            AS seller_state
+
+    FROM bronze.olist_sellers_dataset;
+
+    SET @rows_inserted = @@ROWCOUNT;
+
+    PRINT 'SUCCESS: silver.olist_sellers_dataset loaded';
+
+    PRINT CONCAT('Rows Inserted: ', @rows_inserted);
+
+    PRINT CONCAT(
+        'Time Taken (seconds): ',
+        DATEDIFF(SECOND, @sellers_start_time, GETDATE())
+    );
+
+END TRY
+
+BEGIN CATCH
+
+    PRINT 'ERROR: Failed to load silver.olist_sellers_dataset';
+    PRINT ERROR_MESSAGE();
+
+END CATCH;
+
     ------------------------------------------------------
     -- Total Layer Execution Time
     ------------------------------------------------------
