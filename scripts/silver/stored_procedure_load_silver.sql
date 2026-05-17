@@ -455,6 +455,106 @@ BEGIN
 
     END CATCH;
 
+        /*====================================================================================================================
+            5. LOAD ORDER REVIEWS DATASET
+            DESCRIPTION:
+                Loads and transforms customer review data from the Bronze layer
+                into the Silver layer.
+
+                TRANSFORMATIONS APPLIED:
+                -----------------------------------------------------------------------------------------
+                - Removes unwanted quotation marks
+                - Removes leading/trailing spaces
+                - Handles NULL review fields using default values
+                - Standardizes textual review data
+                - Preserves review timestamps and scores
+
+        ====================================================================================================================*/
+
+        BEGIN TRY
+
+            ------------------------------------------------------
+            -- Start Execution Timer
+            ------------------------------------------------------
+            DECLARE @review_start_time DATETIME = GETDATE();
+
+           
+
+            PRINT 'Loading: silver.olist_order_reviews_dataset';
+
+            ------------------------------------------------------
+            -- Full Load Strategy
+            ------------------------------------------------------
+            TRUNCATE TABLE silver.olist_order_reviews_dataset;
+
+            ------------------------------------------------------
+            -- Insert Transformed Data
+            ------------------------------------------------------
+            INSERT INTO silver.olist_order_reviews_dataset (
+
+                review_id,
+                order_id,
+                review_score,
+                review_comment_title,
+                review_comment_message,
+                review_creation_date,
+                review_answer_timestamp
+
+            )
+
+            SELECT
+
+                REPLACE(TRIM(review_id), '"', '')
+                    AS review_id,
+
+                REPLACE(TRIM(order_id), '"', '')
+                    AS order_id,
+
+                review_score,
+
+                TRIM(COALESCE(review_comment_title, 'n/a'))
+                    AS review_comment_title,
+
+                TRIM(COALESCE(review_comment_message, 'n/a'))
+                    AS review_comment_message,
+
+                review_creation_date,
+                review_answer_timestamp
+
+            FROM bronze.olist_order_reviews_dataset;
+
+            ------------------------------------------------------
+            -- Capture Inserted Row Count
+            ------------------------------------------------------
+            SET @rows_inserted = @@ROWCOUNT;
+
+            ------------------------------------------------------
+            -- Success Logging
+            ------------------------------------------------------
+            PRINT 'SUCCESS: silver.olist_order_reviews_dataset loaded';
+
+            PRINT CONCAT(
+                'Rows Inserted: ',
+                @rows_inserted
+            );
+
+            PRINT CONCAT(
+                'Time Taken (seconds): ',
+                DATEDIFF(SECOND, @review_start_time, GETDATE())
+            );
+
+        END TRY
+
+        BEGIN CATCH
+
+            ------------------------------------------------------
+            -- Error Logging
+            ------------------------------------------------------
+            PRINT 'ERROR: Failed to load silver.olist_order_reviews_dataset';
+            PRINT ERROR_MESSAGE();
+
+        END CATCH;
+
     ------------------------------------------------------
     -- Total Layer Execution Time
     ------------------------------------------------------
@@ -471,3 +571,4 @@ BEGIN
 END;
 GO
 
+EXEC silver.load_silver_layer
