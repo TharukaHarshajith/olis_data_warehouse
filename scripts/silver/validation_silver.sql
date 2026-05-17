@@ -750,3 +750,156 @@ SELECT
     *
 FROM silver.olist_order_reviews_dataset;
 GO
+
+/*####################################################################################################################
+                                            ORDERS DATASET VALIDATION
+####################################################################################################################*/
+
+
+/*====================================================================
+    1. DATA PREVIEW
+====================================================================*/
+
+SELECT TOP 100
+    *
+FROM silver.olist_orders_dataset;
+GO
+
+
+/*====================================================================
+    2. DUPLICATE CHECK
+====================================================================*/
+
+SELECT
+    order_id,
+    COUNT(*) AS record_count
+FROM silver.olist_orders_dataset
+GROUP BY order_id
+HAVING COUNT(*) > 1;
+GO
+
+
+/*====================================================================
+    3. NULL CHECKS
+====================================================================*/
+
+SELECT *
+FROM silver.olist_orders_dataset
+WHERE order_id IS NULL;
+GO
+
+SELECT *
+FROM silver.olist_orders_dataset
+WHERE customer_id IS NULL;
+GO
+
+SELECT *
+FROM silver.olist_orders_dataset
+WHERE order_status IS NULL;
+GO
+
+SELECT *
+FROM silver.olist_orders_dataset
+WHERE order_purchase_timestamp IS NULL;
+GO
+
+
+/*====================================================================
+    4. WHITESPACE CHECKS
+====================================================================*/
+
+SELECT *
+FROM silver.olist_orders_dataset
+WHERE order_id <> TRIM(order_id);
+GO
+
+SELECT *
+FROM silver.olist_orders_dataset
+WHERE customer_id <> TRIM(customer_id);
+GO
+
+SELECT *
+FROM silver.olist_orders_dataset
+WHERE order_status <> TRIM(order_status);
+GO
+
+
+/*====================================================================
+    5. INVALID TIMESTAMP SEQUENCE CHECKS
+====================================================================*/
+
+-- Approval before purchase
+
+SELECT *
+FROM silver.olist_orders_dataset
+WHERE order_approved_at < order_purchase_timestamp;
+GO
+
+
+-- Carrier delivery before approval
+
+SELECT *
+FROM silver.olist_orders_dataset
+WHERE order_delivered_carrier_date < order_approved_at;
+GO
+
+
+-- Customer delivery before carrier delivery
+
+SELECT *
+FROM silver.olist_orders_dataset
+WHERE order_delivered_customer_date < order_delivered_carrier_date;
+GO
+
+
+-- Estimated delivery before purchase
+
+SELECT *
+FROM silver.olist_orders_dataset
+WHERE order_estimated_delivery_date < order_purchase_timestamp;
+GO
+
+
+/*====================================================================
+    6. DATA QUALITY FLAG CHECKS
+====================================================================*/
+
+SELECT *
+FROM silver.olist_orders_dataset
+WHERE dq_invalid_approval_timestamp_flag = 1;
+GO
+
+SELECT *
+FROM silver.olist_orders_dataset
+WHERE dq_invalid_carrier_timestamp_flag = 1;
+GO
+
+SELECT *
+FROM silver.olist_orders_dataset
+WHERE dq_invalid_customer_delivery_timestamp_flag = 1;
+GO
+
+SELECT *
+FROM silver.olist_orders_dataset
+WHERE dq_invalid_estimated_delivery_timestamp_flag = 1;
+GO
+
+
+/*====================================================================
+    7. ORDER STATUS ANALYSIS
+====================================================================*/
+
+SELECT DISTINCT
+    order_status
+FROM silver.olist_orders_dataset
+ORDER BY order_status;
+GO
+
+
+/*====================================================================
+    8. FINAL DATA CHECK
+====================================================================*/
+
+SELECT *
+FROM silver.olist_orders_dataset;
+GO
