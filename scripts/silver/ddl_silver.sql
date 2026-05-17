@@ -79,6 +79,12 @@ CREATE TABLE silver.olist_orders_dataset (
     order_delivered_customer_date    DATETIME2,
     order_estimated_delivery_date    DATETIME2,
 
+    dq_invalid_approval_timestamp_flag            BIT,
+    dq_invalid_carrier_timestamp_flag             BIT,
+    dq_invalid_customer_delivery_timestamp_flag   BIT,
+    dq_invalid_estimated_delivery_timestamp_flag  BIT,
+
+
     dwh_create_date                  DATETIME2 DEFAULT GETDATE()
 
 );
