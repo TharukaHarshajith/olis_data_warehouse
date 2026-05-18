@@ -117,3 +117,61 @@ LEFT JOIN silver.olist_geolocation_dataset g
     ON s.seller_zip_code_prefix =
        g.geolocation_zip_code_prefix;
 GO
+
+/*====================================================================
+    VIEW : gold.products
+    DESCRIPTION:
+        Product dimension table for analytical reporting.
+
+    FEATURES:
+        - Surrogate product key
+        - Product category translation
+        - Product physical attributes
+        - Product metadata enrichment
+
+====================================================================*/
+
+CREATE OR ALTER VIEW gold.products AS
+
+SELECT 
+
+    ROW_NUMBER() OVER (
+        ORDER BY p.product_id
+    ) AS product_key,
+
+    p.product_id,
+
+    -- Translate product category if available
+    CASE
+
+        WHEN t.product_category_name IS NULL
+             AND p.product_category_name = 'n/a'
+
+        THEN p.product_category_name
+
+        WHEN t.product_category_name IS NULL
+
+        THEN CONCAT(
+                p.product_category_name,
+                ' (Translate)'
+             )
+
+        ELSE t.product_category_name_english
+
+    END AS product_category,
+
+    p.product_weight_g,
+    p.product_length_cm,
+    p.product_height_cm,
+    p.product_width_cm,
+
+    p.product_name_lenght,
+    p.product_description_lenght,
+    p.product_photos_qty
+
+FROM silver.olist_products_dataset p
+
+LEFT JOIN silver.product_category_name_translation t
+    ON p.product_category_name =
+       t.product_category_name;
+GO
