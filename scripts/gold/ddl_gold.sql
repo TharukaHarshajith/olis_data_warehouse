@@ -69,3 +69,47 @@ FROM (
 
 WHERE row_num = 1;
 GO
+
+/*====================================================================
+    VIEW : gold.sellers
+    DESCRIPTION:
+        Seller dimension table for analytical reporting.
+
+    FEATURES:
+        - Seller location enrichment
+        - Geolocation integration
+        - Standardized seller attributes
+
+====================================================================*/
+
+CREATE OR ALTER VIEW gold.sellers AS
+
+SELECT
+
+    s.seller_id,
+
+    -- Use geolocation city if available
+    CASE
+        WHEN g.geolocation_city IS NULL
+        THEN s.seller_city
+        ELSE g.geolocation_city
+    END AS city,
+
+    s.seller_state
+        AS state,
+
+    s.seller_zip_code_prefix
+        AS zip_code,
+
+    g.geolocation_lat
+        AS latitude,
+
+    g.geolocation_lng
+        AS longitude
+
+FROM silver.olist_sellers_dataset s
+
+LEFT JOIN silver.olist_geolocation_dataset g
+    ON s.seller_zip_code_prefix =
+       g.geolocation_zip_code_prefix;
+GO
