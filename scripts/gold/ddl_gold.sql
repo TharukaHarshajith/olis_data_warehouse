@@ -85,6 +85,10 @@ GO
 CREATE OR ALTER VIEW gold.sellers AS
 
 SELECT
+    
+    ROW_NUMBER() OVER (
+        ORDER BY s.seller_id
+    ) AS seller_key,
 
     s.seller_id,
 
