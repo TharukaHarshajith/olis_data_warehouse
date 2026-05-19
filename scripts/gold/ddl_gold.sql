@@ -394,3 +394,100 @@ SELECT
 FROM cte_payment_data;
 GO
 
+/*====================================================================
+    VIEW : gold.fact_orders
+    DESCRIPTION:
+        Order item-level fact table for analytical reporting.
+
+    GRAIN:
+        One row per order item.
+
+    FEATURES:
+        - Customer integration
+        - Product integration
+        - Seller integration
+        - Order lifecycle timestamps
+        - Delivery analytics
+        - Data quality monitoring
+
+====================================================================*/
+
+CREATE OR ALTER VIEW gold.fact_orders AS
+
+WITH cte_orders_dataset AS (
+
+    SELECT
+
+        o.order_id,
+
+        c.customer_unique_id,
+
+        o.order_status,
+
+        o.order_purchase_timestamp,
+        o.order_approved_at,
+        o.order_delivered_carrier_date,
+        o.order_delivered_customer_date,
+        o.order_estimated_delivery_date,
+
+        o.dq_invalid_approval_timestamp_flag,
+        o.dq_invalid_carrier_timestamp_flag,
+        o.dq_invalid_customer_delivery_timestamp_flag,
+        o.dq_invalid_estimated_delivery_timestamp_flag
+
+    FROM silver.olist_orders_dataset o
+
+    LEFT JOIN silver.olist_customers_dataset c
+        ON o.customer_id = c.customer_id
+
+)
+
+SELECT
+
+    ------------------------------------------------------
+    -- Order Information
+    ------------------------------------------------------
+    i.order_id,
+
+    o.customer_unique_id
+        AS customer_id,
+
+    i.product_id,
+    i.seller_id,
+
+    o.order_status,
+
+
+    ------------------------------------------------------
+    -- Financial Metrics
+    ------------------------------------------------------
+    i.price,
+    i.freight_value AS shipping_cost,
+
+
+    ------------------------------------------------------
+    -- Shipping & Delivery Dates
+    ------------------------------------------------------
+    i.shipping_limit_date,
+
+    o.order_purchase_timestamp,
+    o.order_approved_at,
+    o.order_delivered_carrier_date,
+    o.order_delivered_customer_date,
+    o.order_estimated_delivery_date,
+
+
+    ------------------------------------------------------
+    -- Data Quality Flags
+    ------------------------------------------------------
+    o.dq_invalid_approval_timestamp_flag,
+    o.dq_invalid_carrier_timestamp_flag,
+    o.dq_invalid_customer_delivery_timestamp_flag,
+    o.dq_invalid_estimated_delivery_timestamp_flag
+
+FROM silver.olist_order_items_dataset i
+
+LEFT JOIN cte_orders_dataset o
+    ON i.order_id = o.order_id;
+
+GO
