@@ -175,3 +175,222 @@ LEFT JOIN silver.product_category_name_translation t
     ON p.product_category_name =
        t.product_category_name;
 GO
+
+/*====================================================================
+    VIEW : gold.payments
+    DESCRIPTION:
+        Aggregated payment summary table at order level.
+
+    FEATURES:
+        - One row per order
+        - Payment method aggregation
+        - Payment amount aggregation
+        - Installment aggregation
+        - ML-ready payment flags
+
+====================================================================*/
+
+CREATE OR ALTER VIEW gold.payments AS
+
+WITH cte_payment_data AS (
+
+    SELECT
+
+        ROW_NUMBER() OVER (
+            ORDER BY order_id
+        ) AS payment_key,
+
+        order_id,
+
+        ------------------------------------------------------
+        -- Credit Card Metrics
+        ------------------------------------------------------
+        SUM(used_credit_card)
+            AS credit_card_payment_count,
+
+        SUM(credit_card_payment)
+            AS credit_card_payment,
+
+        SUM(credit_card_payment_installments)
+            AS credit_card_payment_installments,
+
+
+        ------------------------------------------------------
+        -- Debit Card Metrics
+        ------------------------------------------------------
+        SUM(used_debit_card)
+            AS debit_card_payment_count,
+
+        SUM(debit_card_payment)
+            AS debit_card_payment,
+
+        SUM(debit_card_payment_installments)
+            AS debit_card_payment_installments,
+
+
+        ------------------------------------------------------
+        -- Boleto Metrics
+        ------------------------------------------------------
+        SUM(used_boleto)
+            AS boleto_payment_count,
+
+        SUM(boleto_payment)
+            AS boleto_payment,
+
+        SUM(boleto_payment_installments)
+            AS boleto_payment_installments,
+
+
+        ------------------------------------------------------
+        -- Voucher Metrics
+        ------------------------------------------------------
+        SUM(used_voucher)
+            AS voucher_payment_count,
+
+        SUM(voucher_payment)
+            AS voucher_payment,
+
+        SUM(voucher_payment_installments)
+            AS voucher_payment_installments,
+
+
+        ------------------------------------------------------
+        -- Undefined Payment Metrics
+        ------------------------------------------------------
+        SUM(not_defined_used_payment)
+            AS not_defined_payment_count,
+
+        SUM(not_defined_payment)
+            AS not_defined_payment,
+
+        SUM(not_defined_payment_installments)
+            AS not_defined_payment_installments
+
+    FROM (
+
+        SELECT 
+
+            order_id,
+
+            ------------------------------------------------------
+            -- Credit Card
+            ------------------------------------------------------
+            CASE
+                WHEN payment_type = 'credit_card'
+                THEN 1
+                ELSE 0
+            END AS used_credit_card,
+
+            CASE
+                WHEN payment_type = 'credit_card'
+                THEN payment_value
+                ELSE 0
+            END AS credit_card_payment,
+
+            CASE
+                WHEN payment_type = 'credit_card'
+                THEN payment_installments
+                ELSE 0
+            END AS credit_card_payment_installments,
+
+
+            ------------------------------------------------------
+            -- Debit Card
+            ------------------------------------------------------
+            CASE
+                WHEN payment_type = 'debit_card'
+                THEN 1
+                ELSE 0
+            END AS used_debit_card,
+
+            CASE
+                WHEN payment_type = 'debit_card'
+                THEN payment_value
+                ELSE 0
+            END AS debit_card_payment,
+
+            CASE
+                WHEN payment_type = 'debit_card'
+                THEN payment_installments
+                ELSE 0
+            END AS debit_card_payment_installments,
+
+
+            ------------------------------------------------------
+            -- Boleto
+            ------------------------------------------------------
+            CASE
+                WHEN payment_type = 'boleto'
+                THEN 1
+                ELSE 0
+            END AS used_boleto,
+
+            CASE
+                WHEN payment_type = 'boleto'
+                THEN payment_value
+                ELSE 0
+            END AS boleto_payment,
+
+            CASE
+                WHEN payment_type = 'boleto'
+                THEN payment_installments
+                ELSE 0
+            END AS boleto_payment_installments,
+
+
+            ------------------------------------------------------
+            -- Voucher
+            ------------------------------------------------------
+            CASE
+                WHEN payment_type = 'voucher'
+                THEN 1
+                ELSE 0
+            END AS used_voucher,
+
+            CASE
+                WHEN payment_type = 'voucher'
+                THEN payment_value
+                ELSE 0
+            END AS voucher_payment,
+
+            CASE
+                WHEN payment_type = 'voucher'
+                THEN payment_installments
+                ELSE 0
+            END AS voucher_payment_installments,
+
+
+            ------------------------------------------------------
+            -- Not Defined
+            ------------------------------------------------------
+            CASE
+                WHEN payment_type = 'not_defined'
+                THEN 1
+                ELSE 0
+            END AS not_defined_used_payment,
+
+            CASE
+                WHEN payment_type = 'not_defined'
+                THEN payment_value
+                ELSE 0
+            END AS not_defined_payment,
+
+            CASE
+                WHEN payment_type = 'not_defined'
+                THEN payment_installments
+                ELSE 0
+            END AS not_defined_payment_installments
+
+        FROM silver.olist_order_payments_dataset
+
+    ) t
+
+    GROUP BY order_id
+
+)
+
+SELECT
+    *
+FROM cte_payment_data;
+GO
+
