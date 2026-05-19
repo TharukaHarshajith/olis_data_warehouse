@@ -491,3 +491,57 @@ LEFT JOIN cte_orders_dataset o
     ON i.order_id = o.order_id;
 
 GO
+
+/*====================================================================
+    VIEW : gold.dim_reviews
+    DESCRIPTION:
+        Review dimension table for analytical reporting.
+
+    FEATURES:
+        - Surrogate review key
+        - Aggregated review scores
+        - Combined review titles
+        - Combined review messages
+
+====================================================================*/
+
+CREATE OR ALTER VIEW gold.dim_reviews AS
+
+SELECT
+
+    ROW_NUMBER() OVER (
+        ORDER BY order_id
+    ) AS review_key,
+
+    order_id,
+
+    average_review_score,
+
+    review_titles,
+    review_messages
+
+FROM (
+
+    SELECT
+
+        order_id,
+
+        AVG(review_score)
+            AS average_review_score,
+
+        STRING_AGG(
+            review_comment_title,
+            ', '
+        ) AS review_titles,
+
+        STRING_AGG(
+            review_comment_message,
+            ', '
+        ) AS review_messages
+
+    FROM silver.olist_order_reviews_dataset
+
+    GROUP BY order_id
+
+) t;
+GO
