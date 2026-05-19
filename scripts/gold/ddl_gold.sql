@@ -11,7 +11,7 @@
 
 ====================================================================*/
 
-CREATE OR ALTER VIEW gold.customers AS
+CREATE OR ALTER VIEW gold.dim_customers AS
 
 SELECT
 
@@ -82,7 +82,7 @@ GO
 
 ====================================================================*/
 
-CREATE OR ALTER VIEW gold.sellers AS
+CREATE OR ALTER VIEW gold.dim_sellers AS
 
 SELECT
     
@@ -131,7 +131,7 @@ GO
 
 ====================================================================*/
 
-CREATE OR ALTER VIEW gold.products AS
+CREATE OR ALTER VIEW gold.dim_products AS
 
 SELECT 
 
@@ -190,7 +190,7 @@ GO
 
 ====================================================================*/
 
-CREATE OR ALTER VIEW gold.payments AS
+CREATE OR ALTER VIEW gold.dim_payments AS
 
 WITH cte_payment_data AS (
 
