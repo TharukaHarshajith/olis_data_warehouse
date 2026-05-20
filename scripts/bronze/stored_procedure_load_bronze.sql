@@ -47,7 +47,7 @@ BEGIN
         TRUNCATE TABLE bronze.olist_customers_dataset;
 
         BULK INSERT bronze.olist_customers_dataset
-        FROM 'D:\For_Job\Data_Engineering_Project\olis\olist_customers_dataset.csv'
+        FROM 'D:\For_Job\Data_Engineering_Project\olis_data_warehouse\data\olist_customers_dataset.csv'
         WITH (
             FIRSTROW = 2,
             FIELDTERMINATOR = ',',
@@ -79,7 +79,7 @@ BEGIN
         TRUNCATE TABLE bronze.olist_geolocation_dataset;
 
         BULK INSERT bronze.olist_geolocation_dataset
-        FROM 'D:\For_Job\Data_Engineering_Project\olis\olist_geolocation_dataset.csv'
+        FROM 'D:\For_Job\Data_Engineering_Project\olis_data_warehouse\data\olist_geolocation_dataset.csv'
         WITH (
             FIRSTROW = 2,
             FIELDTERMINATOR = ',',
@@ -111,7 +111,7 @@ BEGIN
         TRUNCATE TABLE bronze.olist_order_items_dataset;
 
         BULK INSERT bronze.olist_order_items_dataset
-        FROM 'D:\For_Job\Data_Engineering_Project\olis\olist_order_items_dataset.csv'
+        FROM 'D:\For_Job\Data_Engineering_Project\olis_data_warehouse\data\olist_order_items_dataset.csv'
         WITH (
             FIRSTROW = 2,
             FIELDTERMINATOR = ',',
@@ -143,7 +143,7 @@ BEGIN
         TRUNCATE TABLE bronze.olist_order_payments_dataset;
 
         BULK INSERT bronze.olist_order_payments_dataset
-        FROM 'D:\For_Job\Data_Engineering_Project\olis\olist_order_payments_dataset.csv'
+        FROM 'D:\For_Job\Data_Engineering_Project\olis_data_warehouse\data\olist_order_payments_dataset.csv'
         WITH (
             FIRSTROW = 2,
             FIELDTERMINATOR = ',',
@@ -175,7 +175,7 @@ BEGIN
         TRUNCATE TABLE bronze.olist_order_reviews_dataset;
 
         BULK INSERT bronze.olist_order_reviews_dataset
-        FROM 'D:\For_Job\Data_Engineering_Project\olis\olist_order_reviews_dataset.csv'
+        FROM 'D:\For_Job\Data_Engineering_Project\olis_data_warehouse\data\olist_order_reviews_dataset.csv'
         WITH (
             FORMAT = 'CSV',
             FIRSTROW = 2,
@@ -206,7 +206,7 @@ BEGIN
         TRUNCATE TABLE bronze.olist_orders_dataset;
 
         BULK INSERT bronze.olist_orders_dataset
-        FROM 'D:\For_Job\Data_Engineering_Project\olis\olist_orders_dataset.csv'
+        FROM 'D:\For_Job\Data_Engineering_Project\olis_data_warehouse\data\olist_orders_dataset.csv'
         WITH (
             FIRSTROW = 2,
             FIELDTERMINATOR = ',',
@@ -238,7 +238,7 @@ BEGIN
         TRUNCATE TABLE bronze.olist_products_dataset;
 
         BULK INSERT bronze.olist_products_dataset
-        FROM 'D:\For_Job\Data_Engineering_Project\olis\olist_products_dataset.csv'
+        FROM 'D:\For_Job\Data_Engineering_Project\olis_data_warehouse\data\olist_products_dataset.csv'
         WITH (
             FIRSTROW = 2,
             FIELDTERMINATOR = ',',
@@ -270,7 +270,7 @@ BEGIN
         TRUNCATE TABLE bronze.olist_sellers_dataset;
 
         BULK INSERT bronze.olist_sellers_dataset
-        FROM 'D:\For_Job\Data_Engineering_Project\olis\olist_sellers_dataset.csv'
+        FROM 'D:\For_Job\Data_Engineering_Project\olis_data_warehouse\data\olist_sellers_dataset.csv'
         WITH (
             FIRSTROW = 2,
             FIELDTERMINATOR = ',',
@@ -302,7 +302,7 @@ BEGIN
         TRUNCATE TABLE bronze.product_category_name_translation;
 
         BULK INSERT bronze.product_category_name_translation
-        FROM 'D:\For_Job\Data_Engineering_Project\olis\product_category_name_translation.csv'
+        FROM 'D:\For_Job\Data_Engineering_Project\olis_data_warehouse\data\product_category_name_translation.csv'
         WITH (
             FIRSTROW = 2,
             FIELDTERMINATOR = ',',
