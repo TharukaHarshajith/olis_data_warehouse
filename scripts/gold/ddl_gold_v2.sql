@@ -32,3 +32,13 @@ ON oi.product_id = p.product_id
 LEFT JOIN gold.dim_sellers s
 ON oi.seller_id = s.seller_id
 
+
+CREATE OR ALTER VIEW gold.fact_payments AS
+SELECT
+    d.order_key,
+    payment_type,
+    payment_installments,
+    payment_value
+FROM silver.olist_order_payments_dataset p
+LEFT JOIN gold.dim_orders d
+ON p.order_id = d.order_id
