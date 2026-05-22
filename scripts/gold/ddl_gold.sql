@@ -470,6 +470,8 @@ GO
 
 CREATE OR ALTER VIEW gold.fact_orders AS
 
+--CREATE OR ALTER VIEW gold.fact_orders AS
+
 WITH cte_orders_dataset AS (
 
     SELECT
@@ -536,55 +538,87 @@ cte_orders AS (
         ON i.order_id = o.order_id
 
 )
+,cte_deduplicate_orders AS(
+SELECT
+*
+FROM
+(SELECT
+    order_id,
+    customer_id,
+    product_id,
+    seller_id,
+    price,
+    shipping_cost,
+    order_status,
+    shipping_limit_date,
+    order_purchase_timestamp,
+    order_approved_at,
+    order_delivered_carrier_date,
+    order_delivered_customer_date,
+    order_estimated_delivery_date,
+    dq_invalid_approval_timestamp_flag,
+    dq_invalid_carrier_timestamp_flag,
+    dq_invalid_customer_delivery_timestamp_flag,
+    dq_invalid_estimated_delivery_timestamp_flag,
+    ROW_NUMBER() OVER (PARTITION BY order_id,
+    customer_id,
+    product_id,
+    seller_id,
+    price,
+    shipping_cost,
+    order_status,
+    shipping_limit_date,
+    order_purchase_timestamp,
+    order_approved_at,
+    order_delivered_carrier_date,
+    order_delivered_customer_date,
+    order_estimated_delivery_date,
+    dq_invalid_approval_timestamp_flag,
+    dq_invalid_carrier_timestamp_flag,
+    dq_invalid_customer_delivery_timestamp_flag,
+    dq_invalid_estimated_delivery_timestamp_flag ORDER BY order_id  ) flag1,
+    COUNT(*) OVER (PARTITION BY order_id,
+    customer_id,
+    product_id,
+    seller_id,
+    price,
+    shipping_cost,
+    order_status,
+    shipping_limit_date,
+    order_purchase_timestamp,
+    order_approved_at,
+    order_delivered_carrier_date,
+    order_delivered_customer_date,
+    order_estimated_delivery_date,
+    dq_invalid_approval_timestamp_flag,
+    dq_invalid_carrier_timestamp_flag,
+    dq_invalid_customer_delivery_timestamp_flag,
+    dq_invalid_estimated_delivery_timestamp_flag ORDER BY order_id  ) flag2
+FROM cte_orders)t WHERE flag1=1
 
-SELECT 
+)
 
-    ------------------------------------------------------
-    -- Business Keys
-    ------------------------------------------------------
+SELECT
     o.order_id,
-
     c.customer_key,
     s.seller_key,
     p.product_key,
     r.review_key,
     pa.payment_key,
-
-
-    ------------------------------------------------------
-    -- Financial Metrics
-    ------------------------------------------------------
     o.price,
     o.shipping_cost,
-
-
-    ------------------------------------------------------
-    -- Order Information
-    ------------------------------------------------------
     o.order_status,
-
-
-    ------------------------------------------------------
-    -- Shipping & Delivery Dates
-    ------------------------------------------------------
     o.shipping_limit_date,
-
     o.order_purchase_timestamp,
     o.order_approved_at,
     o.order_delivered_carrier_date,
     o.order_delivered_customer_date,
     o.order_estimated_delivery_date,
-
-
-    ------------------------------------------------------
-    -- Data Quality Flags
-    ------------------------------------------------------
     o.dq_invalid_approval_timestamp_flag,
     o.dq_invalid_carrier_timestamp_flag,
     o.dq_invalid_customer_delivery_timestamp_flag,
     o.dq_invalid_estimated_delivery_timestamp_flag
-
-FROM cte_orders o
+FROM cte_deduplicate_orders o
 
 LEFT JOIN gold.dim_customers c
     ON o.customer_id = c.customer_id
@@ -597,7 +631,6 @@ LEFT JOIN gold.dim_products p
 
 LEFT JOIN gold.dim_reviews r
     ON o.order_id = r.order_id
-
 LEFT JOIN gold.dim_payments pa
     ON o.order_id = pa.order_id;
 GO
