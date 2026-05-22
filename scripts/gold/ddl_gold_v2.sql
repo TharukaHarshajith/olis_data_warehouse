@@ -42,3 +42,12 @@ SELECT
 FROM silver.olist_order_payments_dataset p
 LEFT JOIN gold.dim_orders d
 ON p.order_id = d.order_id
+
+CREATE OR ALTER VIEW gold.fact_reviews AS
+SELECT
+    d.order_key,
+    review_score,
+    review_creation_date
+FROM silver.olist_order_reviews_dataset r
+LEFT JOIN gold.dim_orders d
+ON r.order_id = d.order_id
