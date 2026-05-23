@@ -23,7 +23,7 @@ SELECT
     geolocation_lng
 FROM customer_data
 WHERE row_num = 1
-
+GO
 
 CREATE OR ALTER VIEW gold.dim_products AS
 SELECT
@@ -45,7 +45,7 @@ SELECT
 FROM silver.olist_products_dataset p
 LEFT JOIN silver.product_category_name_translation t
 ON p.product_category_name = t.product_category_name
-
+GO
 
 CREATE OR ALTER VIEW gold.dim_sellers AS
 SELECT    
@@ -64,7 +64,7 @@ SELECT
 FROM silver.olist_sellers_dataset s
 LEFT JOIN silver.olist_geolocation_dataset g
 ON s.seller_zip_code_prefix = g.geolocation_zip_code_prefix;
-
+GO
 
 
 CREATE OR ALTER VIEW gold.dim_orders AS
@@ -87,7 +87,7 @@ LEFT JOIN silver.olist_customers_dataset sc
 ON o.customer_id = sc.customer_id
 LEFT JOIN gold.dim_customers c
 ON sc.customer_unique_id = c.customer_unique_id
-
+GO
     
 CREATE OR ALTER VIEW gold.fact_order_items AS
 SELECT
@@ -103,7 +103,7 @@ LEFT JOIN gold.dim_products p
 ON oi.product_id = p.product_id
 LEFT JOIN gold.dim_sellers s
 ON oi.seller_id = s.seller_id
-
+GO
 
 CREATE OR ALTER VIEW gold.fact_payments AS
 SELECT
@@ -114,6 +114,7 @@ SELECT
 FROM silver.olist_order_payments_dataset p
 LEFT JOIN gold.dim_orders d
 ON p.order_id = d.order_id
+GO
 
 CREATE OR ALTER VIEW gold.fact_reviews AS
 SELECT
@@ -123,5 +124,3 @@ SELECT
 FROM silver.olist_order_reviews_dataset r
 LEFT JOIN gold.dim_orders d
 ON r.order_id = d.order_id
-
-
