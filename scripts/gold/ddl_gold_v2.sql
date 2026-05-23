@@ -51,3 +51,29 @@ SELECT
 FROM silver.olist_order_reviews_dataset r
 LEFT JOIN gold.dim_orders d
 ON r.order_id = d.order_id
+
+CREATE OR ALTER VIEW gold.dim_customers AS
+WITH customer_data AS (
+    SELECT
+        c.customer_unique_id,
+        c.customer_city,
+        c.customer_state,
+        c.customer_zip_code_prefix,
+        g.geolocation_lat,
+        g.geolocation_lng,
+        ROW_NUMBER() OVER ( PARTITION BY c.customer_unique_id  ORDER BY c.customer_zip_code_prefix) AS row_num
+    FROM silver.olist_customers_dataset c
+    LEFT JOIN silver.olist_geolocation_dataset g
+    ON c.customer_zip_code_prefix = g.geolocation_zip_code_prefix
+)
+
+SELECT
+    ROW_NUMBER() OVER (ORDER BY customer_unique_id) AS customer_key,
+    customer_unique_id,
+    customer_city,
+    customer_state,
+    customer_zip_code_prefix,
+    geolocation_lat,
+    geolocation_lng
+FROM customer_data
+WHERE row_num = 1
