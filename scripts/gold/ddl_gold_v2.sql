@@ -1,20 +1,23 @@
-
 CREATE OR ALTER VIEW gold.dim_orders AS
 SELECT
-    ROW_NUMBER() OVER(
-        ORDER BY order_id
-    ) AS order_key,
-
+    ROW_NUMBER() OVER(ORDER BY order_id) AS order_key,
     order_id,
-    customer_id,
+    c.customer_key,
     order_status,
     order_purchase_timestamp,
     order_approved_at,
     order_delivered_carrier_date,
     order_delivered_customer_date,
-    order_estimated_delivery_date
-FROM silver.olist_orders_dataset
-
+    order_estimated_delivery_date,
+    o.dq_invalid_approval_timestamp_flag,
+    o.dq_invalid_carrier_timestamp_flag,
+    o.dq_invalid_customer_delivery_timestamp_flag,
+    o.dq_invalid_estimated_delivery_timestamp_flag
+FROM silver.olist_orders_dataset o
+LEFT JOIN silver.olist_customers_dataset sc
+ON o.customer_id = sc.customer_id
+LEFT JOIN gold.dim_customers c
+ON sc.customer_unique_id = c.customer_unique_id
 
     
 CREATE OR ALTER VIEW gold.fact_order_items AS
